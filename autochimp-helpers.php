@@ -334,53 +334,11 @@ function AC_SetBooleanOption( $postVar, $optionName )
 //
 function AC_TrimExcerpt( $text )
 {
-	$text = strip_shortcodes( $text );
-	$text = apply_filters('the_content', $text);
-	$text = str_replace(']]>', ']]&gt;', $text);
-	$excerpt_length = apply_filters('excerpt_length', 55);
+	$excerpt_length = apply_filters('autochimp_excerpt_length', 55);
 	$permalink = get_permalink( $postID );
-	$linkTo = "<p>Read the post <a href=\"$permalink\">here</a>.</p>";
-	$excerpt_more = apply_filters('excerpt_more', ' ' . $linkTo);
-	return AC_TrimWords( $text, $excerpt_length, $excerpt_more );
-}
-//
-// Trimps words up to a certain point.  This is a replacement of wp_trim_words() 'cause
-// I'm not a fan of how it works sometimes, specifically when it strips out stuff.
-//
-function AC_TrimWords( $text, $excerpt_length, $excerpt_more )
-{
-	if ( null === $more )
-		$more = __( '&hellip;' );
-	$original_text = $text;
-	//
-	// THE FALSE IN wp_strip_all_tags() IS THE ONLY DIFFERENCE!!!
-	//
-	$text = wp_strip_all_tags( $text, FALSE );
-	/* translators: If your word count is based on single characters (East Asian characters),
-	   enter 'characters'. Otherwise, enter 'words'. Do not translate into your own language. */
-	if ( 'characters' == _x( 'words', 'word count: words or characters?' ) && preg_match( '/^utf\-?8$/i', get_option( 'blog_charset' ) ) ) 
-	{
-		$text = trim( preg_replace( "/[\n\r\t ]+/", ' ', $text ), ' ' );
-		preg_match_all( '/./u', $text, $words_array );
-		$words_array = array_slice( $words_array[0], 0, $num_words + 1 );
-		$sep = '';
-	}
-	else
-	{
-        $words_array = preg_split( "/[\n\r\t ]+/", $text, $num_words + 1, PREG_SPLIT_NO_EMPTY );
-		$sep = ' ';
-	}
-	if ( count( $words_array ) > $num_words ) 
-	{
-        array_pop( $words_array );
-        $text = implode( $sep, $words_array );
-        $text = $text . $more;
-	}
-	else
-	{
-        $text = implode( $sep, $words_array );
-	}
-	return apply_filters( 'wp_trim_words', $text, $num_words, $more, $original_text );
+	$linkTo = "<p>Read the rest of the post <a href=\"$permalink\">here</a>.</p>";
+	$excerpt_more = apply_filters('autochimp_excerpt_more', '...' . $linkTo);
+	return wp_trim_words( $text, $excerpt_length, $excerpt_more );
 }
 
 //	(Note: AutoChimp 2.0 only supports the first level of interest groups.

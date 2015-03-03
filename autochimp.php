@@ -765,6 +765,7 @@ function AC_CreateCampaignFromPost( $api, $postID, $listID, $interestGroupName, 
 	// Time to start creating the campaign...
 	// First, create the options array
 	$htmlContentTag = 'html';
+	$htmlTitleTag = 'html';
 	$options = array();
 	$options['list_id']	= $listID;
 	$options['subject']	= $post->post_title;
@@ -784,6 +785,8 @@ function AC_CreateCampaignFromPost( $api, $postID, $listID, $interestGroupName, 
 		// http://apidocs.mailchimp.com/api/1.3/templateinfo.func.php
 		// You need the campaign ID.  That can be retrieved with campaigns().
 		$htmlContentTag = 'html_main';
+		$htmlTitleTag = 'html_posttitle';
+
 	}
 
 	// Start generating content
@@ -826,6 +829,7 @@ function AC_CreateCampaignFromPost( $api, $postID, $listID, $interestGroupName, 
 
 	// Set the content variables
 	$content[$htmlContentTag] = $postContent;
+	$content[$htmlTitleTag] = $post->post_title;
 
 	// Segmentation, if any (Interest groups)
 	$segment_opts = NULL;
