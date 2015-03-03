@@ -26,6 +26,7 @@ define( "WP88_MC_APIKEY", "wp88_mc_apikey" );
 
 // Mailing List
 define( "WP88_MC_LISTS", "wp88_mc_selectedlists" );
+define( "WP88_MC_ROLES", "wp88_mc_selectedroles" );
 define( "WP88_MC_ADD", "wp88_mc_add" );
 define( "WP88_MC_DELETE", "wp88_mc_delete" );
 define( "WP88_MC_UPDATE", "wp88_mc_update" );
@@ -145,13 +146,38 @@ register_activation_hook( WP_PLUGIN_DIR . '/autochimp/autochimp.php', 'AC_OnActi
 //
 function AC_OnRunSyncUsers()
 {
+	global $wpdb;
+
 	$numSuccess = 0;
 	$numFailed = 0;
 	$summary = '<strong>Report: </strong>';
 
-	// Get a list of users on this site.  For more, see:
-	// http://codex.wordpress.org/Function_Reference/get_users
-	$users = get_users('');
+	// Get a list of users on this site in the given roles
+	$selectedRoles = get_option( WP88_MC_ROLES );
+	if (empty($selectedRoles)) {
+		$message = "<br>Failed to sync email: No user roles selected.";
+		update_option( WP88_MC_MANUAL_SYNC_STATUS, $message );
+		echo $message;
+		exit;
+	} else if( is_array($selectedRoles) ) {
+		$roles_query = array( 'relation' => 'OR');
+		foreach ($selectedRoles as $role) {
+			$roles_query[] =  array(
+	            'key' => $wpdb->get_blog_prefix( get_current_blog_id() ) . 'capabilities',
+	            'value' => $role,
+	            'compare' => 'like'
+       		 );
+		}
+		$users_query = new WP_User_Query( array(
+			'meta_query' => $roles_query
+			) );
+
+	} else {
+		$users_query = new WP_User_Query( array( 'role' => $selectedRoles) );
+	}
+	$users = $users_query->results;
+
+
 	$numUsers = count( $users );
 
 	// Iterate over the array and retrieve that users' basic information.  The 
@@ -423,8 +449,7 @@ function AC_AutoChimpOptions()
 		foreach( $_POST as $postVar )
 		{
 			$pos = strpos( $postVar, WP88_SEARCHABLE_PREFIX );
-			if ( false === $pos ){}
-			else
+			if (is_numeric($pos))
 			{
 				$selectionOption .= $postVar . ',';
 			}
@@ -432,6 +457,12 @@ function AC_AutoChimpOptions()
 
 		// Update the database
 		update_option( WP88_MC_LISTS, $selectionOption );
+
+		if ( isset($_POST['role']) && is_array($_POST['role'])) {
+			update_option( WP88_MC_ROLES, $_POST['role']);
+		} else {
+			update_option( WP88_MC_ROLES, null);
+		}
 
 		// Step 2:  Save when the user wants to update the list
 

@@ -133,6 +133,24 @@ if ( $active_tab == 'mailing_lists' )
 				print "> $listName</p>";
 			}
 	
+			?>
+			<p><strong>2) Which user roles should be added to the mailing list?</strong></p>
+
+			<?php
+			$wp_roles = new WP_Roles();
+			$roles = $wp_roles->get_names();
+		 
+			$selectedRoles = get_option( WP88_MC_ROLES );
+			//quick and dirty way to force selected roles to be an array, even if it's just one option
+			if (!is_array($selectedRoles))
+				$selectedRoles = array($selectedRoles);
+
+			foreach ($roles as $role_value => $role_name) {
+				$checked = in_array($role_value, $selectedRoles) ? 'checked' : '';
+				echo "<p><input type='checkbox' name='role[]' value='$role_value' $checked>$role_name</p>";
+		  	}
+
+
 			// Now add options for when to update the mailing list (add, delete, update)
 			$onAddSubscriber = get_option( WP88_MC_ADD );
 			$onDeleteSubscriber = get_option( WP88_MC_DELETE );
@@ -142,7 +160,9 @@ if ( $active_tab == 'mailing_lists' )
 			$onSendGoodbye = get_option( WP88_MC_SEND_GOODBYE );
 			$onSendNotify = get_option( WP88_MC_SEND_ADMIN_NOTIFICATION );
 	
-			print '<p><strong>2) When would you like to update your selected Mailing Lists?</strong></p>';
+
+
+			print '<p><strong>3) When would you like to update your selected Mailing Lists?</strong></p>';
 	
 			print '<p><input type=CHECKBOX value="on_add_subscriber" name="on_add_subscriber" ';
 			if ( '0' === $onAddSubscriber ){} else
@@ -183,7 +203,7 @@ if ( $active_tab == 'mailing_lists' )
 				print 'checked';
 			print '> When a user updates his information <em>(Syncs the user with your mailing list)</em></p>';
 	
-			print '<p><strong>3) What additional WordPress user information do you want to sync with MailChimp?</strong></p>';
+			print '<p><strong>4) What additional WordPress user information do you want to sync with MailChimp?</strong></p>';
 			print '<p><em>First name, last name, and email are always synchronized.</em></p>';
 			print '<p>Use the following table to assign your WordPress User Fields to your MailChimp fields.  <strong>Tip:</strong> You can use the "Static Text" field at the bottom to assign the same value to each new user which will distinguish users from your site from users from other locations.</p>';
 	
