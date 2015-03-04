@@ -357,6 +357,7 @@ if ( $active_tab == 'campaigns' )
 	}
 	// Load the options from the DB
 	$excerptOnly = get_option( WP88_MC_CAMPAIGN_EXCERPT_ONLY );
+	$featuredImage = get_option( WP88_MC_CAMPAIGN_FEATURED_IMAGE );
 	$createOnce = get_option( WP88_MC_CREATE_CAMPAIGN_ONCE );
 	$sendNow = get_option( WP88_MC_SEND_NOW );
 
@@ -451,6 +452,12 @@ if ( $active_tab == 'campaigns' )
 	if ( '0' === $sendNow || empty( $sendNow ) ){} else
 		print 'checked';
 	print '> Send campaign <em>as soon as</em> a post is published. Not checking this option will save a draft version of your new MailChimp campaign.</p>';
+
+	// Create a checkbox asking if the user wants include a featured image
+	print '<p><input type=CHECKBOX value="on_featured_image" name="on_featured_image"';
+	if ( '1' === $featuredImage )echo 'checked';
+	print '></input> Include the featured image. <em>Only applies to HTML email.</em></p>';
+
 
 	// Create a checkbox asking if the user wants to generate only excerpts
 	print '<p><input type=CHECKBOX value="on_excerpt_only" name="on_excerpt_only"';

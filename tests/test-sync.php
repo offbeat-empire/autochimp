@@ -1,6 +1,6 @@
 <?php
 
-class SampleTest extends WP_UnitTestCase {
+class SyncTest extends WP_UnitTestCase {
 
 	function test_get_syncable_users() {
 		//With no roles selected, this should return false

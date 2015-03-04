@@ -42,6 +42,7 @@ define( "WP88_MC_MANUAL_SYNC_STATUS", "wp88_mc_ms_status" );
 define( "WP88_MC_CAMPAIGN_FROM_POST", "wp88_mc_campaign_from_post" );	// Unused as of 2.0
 define( "WP88_MC_CAMPAIGN_CATEGORY", "wp88_mc_campaign_category" );		// Unused as of 2.0
 define( "WP88_MC_CAMPAIGN_EXCERPT_ONLY", "wp88_mc_campaign_excerpt_only" );
+define( "WP88_MC_CAMPAIGN_FEATURED_IMAGE", "wp88_mc_campaign_featured_image" );
 define( "WP88_MC_CREATE_CAMPAIGN_ONCE", "wp88_mc_create_campaign_once" );
 define( "WP88_MC_SEND_NOW", "wp88_mc_send_now" );
 define( "WP88_MC_LAST_CAMPAIGN_ERROR", "wp88_mc_last_error" );
@@ -522,6 +523,7 @@ function AC_AutoChimpOptions()
 		$publishPlugins->SaveMappings();
 		
 		// The rest is easy...
+		AC_SetBooleanOption( 'on_featured_image', WP88_MC_CAMPAIGN_FEATURED_IMAGE );
 		AC_SetBooleanOption( 'on_excerpt_only', WP88_MC_CAMPAIGN_EXCERPT_ONLY );
 		AC_SetBooleanOption( 'on_send_now', WP88_MC_SEND_NOW );
 		AC_SetBooleanOption( 'on_create_once', WP88_MC_CREATE_CAMPAIGN_ONCE );
@@ -730,6 +732,81 @@ function AC_ManageMailUser( $mode, $user_info, $old_user_data, $writeDBMessages 
 	return $errorCode;
 }
 
+
+/*Prepares post content for sending to a MailChimp campaign
+	 arguments
+		post - WP_Post object for the post to create the campaign for
+*/
+function AC_PrepareCampaignContent($post, $categoryTemplateID) {
+	
+	// Start generating content
+	$content = array();
+	$postContent = '';
+	
+	// Get the excerpt option; if on, then show the excerpt
+	if ( '1' === get_option( WP88_MC_CAMPAIGN_EXCERPT_ONLY ) )
+	{
+		if ( 0 == strlen( $post->post_excerpt ) )
+		{
+			// Handmade function which mimics wp_trim_excerpt() (that function won't operate
+			// on a non-empty string)
+			$postContent = AC_TrimExcerpt( $post->post_content );
+		}
+		else
+		{
+			$postContent = apply_filters( 'the_excerpt', $post->post_excerpt );
+			// Add on a "Read the post" link here
+			$permalink = get_permalink( $post->ID );
+			$postContent .= "<p>Read the post <a href=\"$permalink\">here</a>.</p>";
+			// See http://codex.wordpress.org/Function_Reference/the_content, which
+			// suggests adding this code:
+			$postContent = str_replace( ']]>', ']]&gt;', $postContent );
+		}
+
+		// Set the text content variables
+		$content['text'] = strip_tags( $postContent );
+	}
+	else
+	{
+		// Run the full text through the content plugins
+		$contentPlugins = new ACContentPlugins;
+		$postContent = $contentPlugins->ConvertShortcode( $post->post_content );
+		
+		// Text version isn't run through the content plugins
+		$textPostContent = apply_filters( 'the_content', $post->post_content );
+		$content['text'] = strip_tags( $textPostContent );
+	}
+
+	//Maybe prepend the featured image
+	if ( '1' === get_option( WP88_MC_CAMPAIGN_FEATURED_IMAGE ) )
+	{
+		$featured_image = get_the_post_thumbnail( $post->ID, 'medium' );
+		$postContent = $featured_image . "<br>" . $postContent;
+	}
+
+	// See if a template, and thus special template variables should be used
+	if ( 0 != strcmp( $categoryTemplateID, WP88_NONE ) )
+	{
+		$options['template_id'] = $categoryTemplateID;
+		// 'main' is the name of the section that will be replaced.  This is a
+		// hardcoded decision.  Keeps things simple.  To view the sections of
+		// a template, use MailChimp's templateInfo() function.  For more
+		// information, go here:
+		// http://apidocs.mailchimp.com/api/1.3/templateinfo.func.php
+		// You need the campaign ID.  That can be retrieved with campaigns().
+		$htmlContentTag = 'html_main';
+		$htmlTitleTag = 'html_posttitle';
+
+		// Set the content variables
+		$content[$htmlContentTag] = $postContent;
+		$content[$htmlTitleTag] = $post->post_title;
+	} else {
+		$content['html'] = $postContent;
+	}
+
+	return $content;
+}
+
 //
 //	Arguments:
 //		an instance of the MailChimp API class (for performance).
@@ -771,8 +848,6 @@ function AC_CreateCampaignFromPost( $api, $postID, $listID, $interestGroupName, 
 
 	// Time to start creating the campaign...
 	// First, create the options array
-	$htmlContentTag = 'html';
-	$htmlTitleTag = 'html';
 	$options = array();
 	$options['list_id']	= $listID;
 	$options['subject']	= $post->post_title;
@@ -781,62 +856,8 @@ function AC_CreateCampaignFromPost( $api, $postID, $listID, $interestGroupName, 
 	$options['to_email'] = '*|FNAME|*';
 	$options['tracking'] = array('opens' =>	true, 'html_clicks' => true, 'text_clicks' => false );
 	$options['authenticate'] = true;
-	// See if a template should be used
-	if ( 0 != strcmp( $categoryTemplateID, WP88_NONE ) )
-	{
-		$options['template_id'] = $categoryTemplateID;
-		// 'main' is the name of the section that will be replaced.  This is a
-		// hardcoded decision.  Keeps things simple.  To view the sections of
-		// a template, use MailChimp's templateInfo() function.  For more
-		// information, go here:
-		// http://apidocs.mailchimp.com/api/1.3/templateinfo.func.php
-		// You need the campaign ID.  That can be retrieved with campaigns().
-		$htmlContentTag = 'html_main';
-		$htmlTitleTag = 'html_posttitle';
 
-	}
 
-	// Start generating content
-	$content = array();
-	$postContent = '';
-	
-	// Get the excerpt option; if on, then show the excerpt
-	if ( '1' === get_option( WP88_MC_CAMPAIGN_EXCERPT_ONLY ) )
-	{
-		if ( 0 == strlen( $post->post_excerpt ) )
-		{
-			// Handmade function which mimics wp_trim_excerpt() (that function won't operate
-			// on a non-empty string)
-			$postContent = AC_TrimExcerpt( $post->post_content );
-		}
-		else
-		{
-			$postContent = apply_filters( 'the_excerpt', $post->post_excerpt );
-			// Add on a "Read the post" link here
-			$permalink = get_permalink( $postID );
-			$postContent .= "<p>Read the post <a href=\"$permalink\">here</a>.</p>";
-			// See http://codex.wordpress.org/Function_Reference/the_content, which
-			// suggests adding this code:
-			$postContent = str_replace( ']]>', ']]&gt;', $postContent );
-		}
-
-		// Set the text content variables
-		$content['text'] = strip_tags( $postContent );
-	}
-	else
-	{
-		// Run the full text through the content plugins
-		$contentPlugins = new ACContentPlugins;
-		$postContent = $contentPlugins->ConvertShortcode( $post->post_content );
-		
-		// Text version isn't run through the content plugins
-		$textPostContent = apply_filters( 'the_content', $post->post_content );
-		$content['text'] = strip_tags( $textPostContent );
-	}
-
-	// Set the content variables
-	$content[$htmlContentTag] = $postContent;
-	$content[$htmlTitleTag] = $post->post_title;
 
 	// Segmentation, if any (Interest groups)
 	$segment_opts = NULL;
@@ -851,6 +872,8 @@ function AC_CreateCampaignFromPost( $api, $postID, $listID, $interestGroupName, 
 			$segment_opts = array('match'=>'all', 'conditions'=>$conditions);
 		}
 	}
+
+	$content = AC_PrepareCampaignContent($post, $categoryTemplateID);
 
 	// More info here:  http://apidocs.mailchimp.com/api/1.3/campaigncreate.func.php
 	$result = $api->campaignCreate( 'regular', $options, $content, $segment_opts );
