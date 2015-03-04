@@ -137,28 +137,16 @@ add_action('admin_init', 'AC_OnAdminInit' );
 add_action('plugins_loaded', 'AC_OnMUPluginsLoaded');
 register_activation_hook( WP_PLUGIN_DIR . '/autochimp/autochimp.php', 'AC_OnActivateAutoChimp' );
 
-//
-//	Ajax
-//
-
-//
-//	Ajax call to sync all current users against the selected mailing list(s).
-//
-function AC_OnRunSyncUsers()
+function AC_UsersToSync()
 {
-	global $wpdb;
-
-	$numSuccess = 0;
-	$numFailed = 0;
-	$summary = '<strong>Report: </strong>';
-
 	// Get a list of users on this site in the given roles
 	$selectedRoles = get_option( WP88_MC_ROLES );
 	if (empty($selectedRoles)) {
 		$message = "<br>Failed to sync email: No user roles selected.";
 		update_option( WP88_MC_MANUAL_SYNC_STATUS, $message );
 		echo $message;
-		exit;
+		return false;
+	//Right now multiple roles are stored as an array but a single role is stored as a string. TODO: Fix this.
 	} else if( is_array($selectedRoles) ) {
 		$roles_query = array( 'relation' => 'OR');
 		foreach ($selectedRoles as $role) {
@@ -175,7 +163,27 @@ function AC_OnRunSyncUsers()
 	} else {
 		$users_query = new WP_User_Query( array( 'role' => $selectedRoles) );
 	}
-	$users = $users_query->results;
+	return $users_query->result;
+}
+
+//
+//	Ajax
+//
+
+//
+//	Ajax call to sync all current users against the selected mailing list(s).
+//
+function AC_OnRunSyncUsers()
+{
+	global $wpdb;
+
+	$numSuccess = 0;
+	$numFailed = 0;
+	$summary = '<strong>Report: </strong>';
+
+	$users = AC_UsersToSync();
+	if (!$users)
+		wp_die();
 
 
 	$numUsers = count( $users );
