@@ -273,7 +273,7 @@ class ACPlugins
 		$classlist = array();
 	
 		// Attempt to open the folder
-		$path = WP_PLUGIN_DIR . '/autochimp/plugins';
+		$path = plugin_dir_path( __FILE__ );
 		if ( ( $p = opendir( $path ) ) !== FALSE )
 		{
 			// Read the directory for items inside it.
