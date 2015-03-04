@@ -273,7 +273,7 @@ class ACPlugins
 		$classlist = array();
 	
 		// Attempt to open the folder
-		$path = plugin_dir_path( __FILE__ );
+		$path = plugin_dir_path( __FILE__ ) . 'plugins/';
 		if ( ( $p = opendir( $path ) ) !== FALSE )
 		{
 			// Read the directory for items inside it.
