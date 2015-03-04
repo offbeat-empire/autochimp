@@ -139,6 +139,7 @@ register_activation_hook( WP_PLUGIN_DIR . '/autochimp/autochimp.php', 'AC_OnActi
 
 function AC_UsersToSync()
 {
+	global $wpdb;
 	// Get a list of users on this site in the given roles
 	$selectedRoles = get_option( WP88_MC_ROLES );
 	if (empty($selectedRoles)) {
@@ -163,7 +164,7 @@ function AC_UsersToSync()
 	} else {
 		$users_query = new WP_User_Query( array( 'role' => $selectedRoles) );
 	}
-	return $users_query->result;
+	return $users_query->results;
 }
 
 //
@@ -175,8 +176,6 @@ function AC_UsersToSync()
 //
 function AC_OnRunSyncUsers()
 {
-	global $wpdb;
-
 	$numSuccess = 0;
 	$numFailed = 0;
 	$summary = '<strong>Report: </strong>';
@@ -1168,8 +1167,8 @@ function AC_OnRegisterUser( $userID )
 	if ( '1' == $onAddSubscriber )
 	{
 		$result = AC_ManageMailUser( MMU_ADD, $user_info, NULL, TRUE );
+		return $result;
 	}
-	return $result;
 }
 
 function AC_OnDeleteUser( $userID )
